@@ -1,1 +1,138 @@
 # Course-project-1
+
+---
+title: "Course project 1"
+#Weiye Deng
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 1. reading in the dataset and/or processing the data
+```{r}
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",destfile = "repdata_data_activity.zip",mode="wb")
+unzip("repdata_data_activity.zip")
+activity <- read.csv("activity.csv",header=TRUE)
+head(activity,30)
+tail(activity,30)
+```
+
+## 2. Histogram of the total number of steps taken each day
+```{r}
+## total number of steps taken each day
+total_num <- with(activity, tapply(steps, as.factor(activity$date), sum, na.rm = T))
+hist(total_num, main="Histogram of the total number of steps taken each day", xlab="Total number of steps", ylab="Frequemcy (%)")
+```
+
+
+## 3. Mean and median number of steps taken each day
+```{r}
+summary(total_num)
+```
+#mean and median values are 10766.
+
+## 4. Time series plot of the average number of steps taken
+```{r}
+mean_steps <- aggregate(steps ~ interval, activity, mean)
+
+plot(mean_steps$interval, mean_steps$steps, type='l', col=1, 
+     main="Time series plot of the average number of steps taken", xlab="Interval", 
+     ylab="Average number of steps")
+
+```
+
+
+
+## 5. The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+max_num <- which.max(mean_steps$steps)
+mean_steps [max_num, ]
+
+```
+#The interval is 835.
+
+## 6.Code to describe and show a strategy for imputing missing data
+```{r}
+#missing data
+sum(is.na(activity))
+missing_row <- activity[is.na(activity$steps),]
+
+#replace NA with neab values of 5-minute interval
+for (i in 1:nrow(activity)) {
+    if(is.na(activity$steps[i])) {
+        val <- mean_steps$steps[which(mean_steps$interval == activity$interval[i])]
+        activity$steps[i] <- val 
+    }
+}
+
+impute_dt <- aggregate(steps ~ date, activity, sum)
+
+
+```
+#2304 row missing data.
+
+
+
+## 7.Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+
+hist(impute_dt$steps, main = "Histogram of total number of steps per day (Imputation)", xlab = "Steps per day")
+
+```
+
+
+
+
+## 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+```{r}
+#define weekend and weekday variables
+day <- weekdays(as.Date(activity$date))
+
+two_grps <- vector()
+for (i in 1:nrow(activity)) {
+    if (day[i] == "Saturday" || day[i] == "Sunday"){
+        two_grps[i] <- "Weekend" }
+     else {
+        two_grps[i] <- "Weekday"
+    }
+}
+
+
+activity$two_grps <- two_grps
+activity$two_grps <- factor(activity$two_grps)
+
+stepsByDay <- aggregate(steps ~ interval + two_grps, data = activity, mean)
+names(stepsByDay) <- c("interval", "two_grps", "steps")
+
+
+
+library(lattice)
+xyplot(steps ~ interval | two_grps, stepsByDay, type = "l", layout = c(1, 2), 
+    xlab = "Interval", ylab = "Number of steps")
+
+
+```
+#Difference was observed in the figures between weekend and weekday. Users at weekdays had earlier interval and more step numbers compared with users at weekend.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
